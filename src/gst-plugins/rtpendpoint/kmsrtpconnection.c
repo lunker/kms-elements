@@ -56,6 +56,15 @@ struct _KmsRtpConnectionPrivate
   gboolean is_client;
 };
 
+/* lunker:: signals */
+enum
+{
+  SIGNAL_NOTIFY_HOLEPUNCHING_INFO,
+  LAST_SIGNAL
+};
+
+// static guint kms_rtp_connection_signals[LAST_SIGNAL] = { -1 };
+
 static void
 kms_rtp_connection_interface_init (KmsIRtpConnectionInterface * iface);
 
@@ -86,6 +95,8 @@ kms_rtp_connection_set_remote_info (KmsRtpBaseConnection * base_conn,
 {
   KmsRtpConnection *self = KMS_RTP_CONNECTION (base_conn);
   KmsRtpConnectionPrivate *priv = self->priv;
+
+  GST_DEBUG ("### kms_rtp_connection_set_remote_info()");
 
   g_signal_emit_by_name (priv->rtp_udpsink, "add", host, rtp_port, NULL);
   g_signal_emit_by_name (priv->rtcp_udpsink, "add", host, rtcp_port, NULL);
@@ -213,6 +224,21 @@ kms_rtp_connection_get_property (GObject * object,
   }
 }
 
+static void
+kms_rtp_first_received (GstElement * from, const gchar * host, gint port,
+    GstElement * to)
+{
+  GST_DEBUG
+      ("@@@ kms_rtp_first_received() :: Get FIRST_RECEIVED Event from gst-goods");
+
+  GST_DEBUG ("@@@ Holepunching Host : %s", host);
+  GST_DEBUG ("@@@ Holepunching Port : %d", port);
+  GST_DEBUG_OBJECT (from, "@@@ Event from ");
+  GST_DEBUG_OBJECT (to, "@@@ Event to");
+  /* Fire notify-holepunching-info */
+  g_signal_emit_by_name (to, "notify-holepunching-info", host, port, NULL);
+}
+
 KmsRtpConnection *
 kms_rtp_connection_new (guint16 min_port, guint16 max_port, gboolean use_ipv6)
 {
@@ -252,6 +278,12 @@ kms_rtp_connection_new (guint16 min_port, guint16 max_port, gboolean use_ipv6)
       "sync", FALSE, "async", FALSE, NULL);
   g_object_set (priv->rtcp_udpsrc, "socket", priv->rtcp_socket,
       "auto-multicast", FALSE, NULL);
+
+  /* lunker:: add first-received event handler */
+  g_signal_connect (priv->rtp_udpsrc, "first-received",
+      G_CALLBACK (kms_rtp_first_received), priv->rtp_udpsink);
+
+  GST_DEBUG ("### Add first-received event :: connect with udpsrc <-> udpsink");
 
   kms_i_rtp_connection_connected_signal (KMS_I_RTP_CONNECTION (conn));
 
