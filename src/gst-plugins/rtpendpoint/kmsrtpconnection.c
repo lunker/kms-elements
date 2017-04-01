@@ -313,8 +313,8 @@ kms_rtp_connection_new (guint16 min_port, guint16 max_port, gboolean use_ipv6)
       G_CALLBACK (kms_rtp_first_received), priv->rtp_udpsink);
 
   /* lunker:: add notify-is-holepunched handler - rtp */
-  g_signal_connect (priv->rtp_udpsrc, "notify-is-holepunched",
-      G_CALLBACK (kms_rtp_notify_is_holepunched), priv->rtp_udpsink);
+  g_signal_connect (priv->rtp_udpsink, "notify-is-holepunched",
+      G_CALLBACK (kms_rtp_notify_is_holepunched), priv->rtp_udpsrc);
 
   /* lunker:: add first-received event handler - rtcp */
   g_signal_connect (priv->rtcp_udpsrc, "first-received",
