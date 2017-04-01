@@ -231,12 +231,41 @@ kms_rtp_first_received (GstElement * from, const gchar * host, gint port,
   GST_DEBUG
       ("@@@ kms_rtp_first_received() :: Get FIRST_RECEIVED Event from gst-goods");
 
-  GST_DEBUG ("@@@ Holepunching Host : %s", host);
-  GST_DEBUG ("@@@ Holepunching Port : %d", port);
+  GST_DEBUG ("@@@ RTP Holepunching Host : %s", host);
+  GST_DEBUG ("@@@ RTP Holepunching Port : %d", port);
   GST_DEBUG_OBJECT (from, "@@@ Event from ");
   GST_DEBUG_OBJECT (to, "@@@ Event to");
   /* Fire notify-holepunching-info */
   g_signal_emit_by_name (to, "notify-holepunching-info", host, port, NULL);
+}
+
+static void
+kms_rtcp_first_received (GstElement * from, const gchar * host, gint port,
+    GstElement * to)
+{
+  GST_DEBUG
+      ("@@@ kms_rtcp_first_received() :: Get FIRST_RECEIVED Event from gst-goods");
+
+  GST_DEBUG ("@@@ RTCP Holepunching Host : %s", host);
+  GST_DEBUG ("@@@ RTCP Holepunching Port : %d", port);
+  GST_DEBUG_OBJECT (from, "@@@ Event from ");
+  GST_DEBUG_OBJECT (to, "@@@ Event to");
+  /* Fire notify-holepunching-info */
+  g_signal_emit_by_name (to, "notify-holepunching-info", host, port, NULL);
+}
+
+static void
+kms_rtp_notify_is_holepunched (GstElement * from, gboolean isHolepunched,
+    GstElement * to)
+{
+  GST_DEBUG
+      ("@@@ kms_rtp_notify_is_holepunched() :: Get NOTIFY-IS-HOLEPUNCHED Signals");
+
+  GST_DEBUG_OBJECT (from, "@@@ Event from ");
+  GST_DEBUG_OBJECT (to, "@@@ Event to");
+  GST_DEBUG ("@@@ isHolepunched : %d", isHolepunched);
+  /* Fire notify-holepunching-info */
+  g_signal_emit_by_name (to, "notify-is-holepunched", isHolepunched, NULL);
 }
 
 KmsRtpConnection *
@@ -279,9 +308,17 @@ kms_rtp_connection_new (guint16 min_port, guint16 max_port, gboolean use_ipv6)
   g_object_set (priv->rtcp_udpsrc, "socket", priv->rtcp_socket,
       "auto-multicast", FALSE, NULL);
 
-  /* lunker:: add first-received event handler */
+  /* lunker:: add first-received event handler - rtp */
   g_signal_connect (priv->rtp_udpsrc, "first-received",
       G_CALLBACK (kms_rtp_first_received), priv->rtp_udpsink);
+
+  /* lunker:: add notify-is-holepunched handler - rtp */
+  g_signal_connect (priv->rtp_udpsrc, "notify-is-holepunched",
+      G_CALLBACK (kms_rtp_notify_is_holepunched), priv->rtp_udpsink);
+
+  /* lunker:: add first-received event handler - rtcp */
+  g_signal_connect (priv->rtcp_udpsrc, "first-received",
+      G_CALLBACK (kms_rtcp_first_received), priv->rtcp_udpsink);
 
   GST_DEBUG ("### Add first-received event :: connect with udpsrc <-> udpsink");
 
